@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import sentry_sdk
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -153,16 +153,70 @@ async def metrics():
     )
 
 
-# Import and include routers (will be added as we create them)
-# from .api.auth import router as auth_router
-# from .api.projects import router as projects_router
-# from .api.tasks import router as tasks_router
-# from .api.builds import router as builds_router
+# Import and include routers
+from .api.auth import router as auth_router
+from .api.projects import router as projects_router
+from .api.tasks import router as tasks_router
+from .api.builds import router as builds_router
 
-# app.include_router(auth_router, prefix=f"{settings.api_prefix}/auth", tags=["Authentication"])
-# app.include_router(projects_router, prefix=f"{settings.api_prefix}/projects", tags=["Projects"])
-# app.include_router(tasks_router, prefix=f"{settings.api_prefix}/tasks", tags=["Tasks"])
-# app.include_router(builds_router, prefix=f"{settings.api_prefix}/builds", tags=["Builds"])
+app.include_router(auth_router, prefix=f"{settings.api_prefix}/auth", tags=["Authentication"])
+app.include_router(projects_router, prefix=f"{settings.api_prefix}/projects", tags=["Projects"])
+app.include_router(tasks_router, prefix=f"{settings.api_prefix}/tasks", tags=["Tasks"])
+app.include_router(builds_router, prefix=f"{settings.api_prefix}/builds", tags=["Builds"])
+
+# WebSocket support
+from .websocket import manager, verify_websocket_token, handle_websocket_message
+import json
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str = None):
+    """WebSocket endpoint for real-time updates.
+    
+    Args:
+        websocket: WebSocket connection
+        token: Authentication token (query parameter)
+    """
+    if not token:
+        await websocket.close(code=4001, reason="Authentication token required")
+        return
+    
+    # Verify authentication
+    is_valid, user_id = await verify_websocket_token(token)
+    if not is_valid or not user_id:
+        await websocket.close(code=4001, reason="Invalid authentication token")
+        return
+    
+    # Accept connection
+    success = await manager.connect(websocket, user_id)
+    if not success:
+        await websocket.close(code=4000, reason="Connection failed")
+        return
+    
+    try:
+        while True:
+            # Wait for incoming messages
+            data = await websocket.receive_text()
+            
+            try:
+                message_data = json.loads(data)
+                await handle_websocket_message(websocket, message_data)
+            except json.JSONDecodeError:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "message": "Invalid JSON format"
+                }))
+            except Exception as e:
+                await websocket.send_text(json.dumps({
+                    "type": "error",
+                    "message": f"Message handling error: {str(e)}"
+                }))
+                
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
 
 
 if __name__ == "__main__":
