@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vils-frontend
+  namespace: vils
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vils-frontend
+  template:
+    metadata:
+      labels:
+        app: vils-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: vils/frontend:latest
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: vils-config
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vils-frontend-service
+  namespace: vils
+spec:
+  selector:
+    app: vils-frontend
+  ports:
+  - port: 80
+    targetPort: 80
+  type: ClusterIP

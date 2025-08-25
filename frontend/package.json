@@ -10,6 +10,9 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
     "type-check": "vue-tsc --noEmit",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "test:ui": "vitest --ui",
     "test:standalone": "node test-standalone.mjs",
     "demo": "VITE_USE_MOCK_API=true vite"
   },
@@ -29,8 +32,10 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@pinia/testing": "^0.1.7",
     "@playwright/test": "^1.39.0",
     "@tailwindcss/forms": "^0.5.7",
+    "@testing-library/jest-dom": "^6.8.0",
     "@types/node": "^20.8.10",
     "@vitejs/plugin-vue": "^4.4.0",
     "@vue/eslint-config-prettier": "^8.0.0",

@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vils-config
+  namespace: vils
+data:
+  # Application configuration
+  ENVIRONMENT: "production"
+  DEBUG: "false"
+  API_PREFIX: "/api"
+  
+  # Database configuration
+  DB_POOL_SIZE: "20"
+  DB_MAX_OVERFLOW: "40"
+  
+  # Redis configuration
+  REDIS_URL: "redis://redis-service:6379/0"
+  REDIS_TTL: "3600"
+  
+  # Celery configuration
+  CELERY_BROKER_URL: "redis://redis-service:6379/1"
+  CELERY_RESULT_BACKEND: "redis://redis-service:6379/2"
+  
+  # Security configuration
+  JWT_ALGORITHM: "HS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  
+  # CORS configuration
+  CORS_ORIGINS: "https://vils.example.com,https://app.vils.example.com"
+  
+  # Logging configuration
+  LOG_LEVEL: "INFO"
+  
+  # Frontend configuration
+  VITE_API_BASE_URL: "/api"
+  VITE_WS_URL: "wss://vils.example.com/ws"
+  VITE_USE_MOCK_API: "false"
+  
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vils-secrets
+  namespace: vils
+type: Opaque
+data:
+  # Base64 encoded secrets - replace with actual values
+  DATABASE_URL: cG9zdGdyZXNxbDovL3VzZXI6cGFzc0BkYi01Mzk5NTovdmlsc19kYg== # postgresql://user:pass@db-53995:/vils_db
+  SECRET_KEY: c3VwZXItc2VjcmV0LWtleS1jaGFuZ2UtaW4tcHJvZHVjdGlvbg== # super-secret-key-change-in-production
+  ENCRYPTION_MASTER_KEY: YW5vdGhlci1zZWNyZXQta2V5LWNoYW5nZS1pbi1wcm9kdWN0aW9u # another-secret-key-change-in-production
+  JENKINS_TOKEN: amVua2lucy10b2tlbg== # jenkins-token (if using Jenkins)
+  GITHUB_TOKEN: Z2l0aHViLXRva2Vu # github-token (if using GitHub)
+  SENTRY_DSN: c2VudHJ5LWRzbg== # sentry-dsn (if using Sentry)

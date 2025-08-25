@@ -1,0 +1,214 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vils-backend
+  namespace: vils
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: vils-backend
+  template:
+    metadata:
+      labels:
+        app: vils-backend
+    spec:
+      initContainers:
+      - name: db-migration
+        image: vils/backend:latest
+        command: ["alembic", "upgrade", "head"]
+        envFrom:
+        - configMapRef:
+            name: vils-config
+        - secretRef:
+            name: vils-secrets
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+      containers:
+      - name: backend
+        image: vils/backend:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: vils-config
+        - secretRef:
+            name: vils-secrets
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/monitoring/health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/monitoring/health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        startupProbe:
+          httpGet:
+            path: /api/monitoring/health
+            port: 8000
+          failureThreshold: 30
+          periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vils-backend-service
+  namespace: vils
+spec:
+  selector:
+    app: vils-backend
+  ports:
+  - port: 8000
+    targetPort: 8000
+  type: ClusterIP
+  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vils-celery-worker
+  namespace: vils
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: vils-celery-worker
+  template:
+    metadata:
+      labels:
+        app: vils-celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+        image: vils/backend:latest
+        command: ["celery", "-A", "src.core.celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+        envFrom:
+        - configMapRef:
+            name: vils-config
+        - secretRef:
+            name: vils-secrets
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: git-workspace
+          mountPath: /tmp/git
+      volumes:
+      - name: git-workspace
+        emptyDir:
+          sizeLimit: 5Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vils-celery-beat
+  namespace: vils
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vils-celery-beat
+  template:
+    metadata:
+      labels:
+        app: vils-celery-beat
+    spec:
+      containers:
+      - name: celery-beat
+        image: vils/backend:latest
+        command: ["celery", "-A", "src.core.celery_app", "beat", "--loglevel=info"]
+        envFrom:
+        - configMapRef:
+            name: vils-config
+        - secretRef:
+            name: vils-secrets
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres-service:5432/$(POSTGRES_DB)"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vils-celery-flower
+  namespace: vils
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vils-celery-flower
+  template:
+    metadata:
+      labels:
+        app: vils-celery-flower
+    spec:
+      containers:
+      - name: celery-flower
+        image: vils/backend:latest
+        command: ["celery", "-A", "src.core.celery_app", "flower", "--port=5555"]
+        ports:
+        - containerPort: 5555
+        envFrom:
+        - configMapRef:
+            name: vils-config
+        - secretRef:
+            name: vils-secrets
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vils-celery-flower-service
+  namespace: vils
+spec:
+  selector:
+    app: vils-celery-flower
+  ports:
+  - port: 5555
+    targetPort: 5555
+  type: ClusterIP
