@@ -130,7 +130,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  LockClosed as LockClosedIcon,
+  Lock as LockClosedIcon,
   Eye as EyeIcon,
   EyeOff as EyeOffIcon,
   AlertCircle as AlertCircleIcon,

@@ -132,9 +132,9 @@ import {
   Bell as BellIcon,
   CheckCircle as CheckCircleIcon,
   XCircle as XCircleIcon,
-  ExclamationTriangle as ExclamationTriangleIcon,
-  InformationCircle as InformationCircleIcon,
-  XMark as XMarkIcon,
+  AlertTriangle as ExclamationTriangleIcon,
+  Info as InformationCircleIcon,
+  X as XMarkIcon,
 } from 'lucide-vue-next'
 
 import { useNotificationStore } from '@/stores/notification'

@@ -57,12 +57,17 @@ const getTransitionName = (route: any) => {
 
 // Lifecycle hooks
 onMounted(async () => {
-  // Initialize authentication
-  await authStore.initializeAuth()
-  
-  // Connect WebSocket if authenticated
-  if (authStore.isAuthenticated) {
-    webSocketStore.connect()
+  try {
+    // Initialize authentication
+    await authStore.initializeAuth()
+    
+    // Connect WebSocket if authenticated
+    if (authStore.isAuthenticated) {
+      webSocketStore.connect()
+    }
+  } catch (error) {
+    console.warn('App initialization failed:', error)
+    // Continue loading the app even if auth initialization fails
   }
   
   // Listen for auth state changes

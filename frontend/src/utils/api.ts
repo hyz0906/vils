@@ -2,7 +2,8 @@
  * API client utilities and HTTP service
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import axios from 'axios'
+import type { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import type { AuthTokens } from '@/types'
 import { mockApiClient } from './mockApi'
 

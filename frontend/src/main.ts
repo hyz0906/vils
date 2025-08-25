@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import router from './router'
 import App from './App.vue'
 import './style.css'
+import { setupTokenRefresh } from '@/stores/auth'
 
 const app = createApp(App)
 
@@ -19,3 +20,8 @@ app.config.errorHandler = (error, vm, info) => {
 }
 
 app.mount('#app')
+
+// Set up token refresh after app is mounted and Pinia is active
+if (typeof window !== 'undefined') {
+  setupTokenRefresh()
+}

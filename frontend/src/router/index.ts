@@ -9,7 +9,7 @@ import apiClient from '@/utils/api'
 // Lazy-loaded components
 const Login = () => import('@/views/auth/LoginView.vue')
 const Register = () => import('@/views/auth/RegisterView.vue')
-const Dashboard = () => import('@/views/DashboardView.vue')
+const Dashboard = () => import('@/views/DashboardView-simple.vue')
 const Projects = () => import('@/views/ProjectsView.vue')
 const ProjectDetail = () => import('@/views/ProjectDetailView.vue')
 const Tasks = () => import('@/views/TasksView.vue')
@@ -132,10 +132,18 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const isAuthenticated = apiClient.isAuthenticated()
+  const useMockApi = import.meta.env.VITE_USE_MOCK_API === 'true'
 
   // Set document title
   if (to.meta.title) {
     document.title = to.meta.title as string
+  }
+
+  // In demo mode, bypass authentication for protected routes
+  if (useMockApi && requiresAuth && !isAuthenticated) {
+    // Skip authentication check in demo mode - allow access to all routes
+    next()
+    return
   }
 
   if (requiresAuth && !isAuthenticated) {

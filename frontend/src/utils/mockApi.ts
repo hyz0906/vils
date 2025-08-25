@@ -170,6 +170,27 @@ export class MockApiClient {
 
   constructor(baseURL: string) {
     this.baseURL = baseURL
+    
+    // Auto-authenticate in demo mode
+    if (useMockApi) {
+      this.autoAuthenticate()
+    }
+  }
+  
+  private autoAuthenticate() {
+    const demoTokens: AuthTokens = {
+      access_token: 'demo-access-token-' + Date.now(),
+      refresh_token: 'demo-refresh-token-' + Date.now(),
+      token_type: 'Bearer',
+      expires_in: 3600
+    }
+    
+    // Set the current user to the first mock user
+    currentUser = mockUsers[0]
+    
+    // Store tokens in mock storage
+    this.storeTokens(demoTokens)
+    this.setAuthToken(demoTokens.access_token)
   }
 
   setAuthToken(token: string) {

@@ -1,9 +1,9 @@
+@import './styles/components.css';
+@import './styles/responsive.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import './styles/components.css';
-@import './styles/responsive.css';
 
 /* Custom components */
 @layer components {

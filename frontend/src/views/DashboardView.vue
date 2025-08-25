@@ -16,12 +16,12 @@
                   <dt class="sr-only">Account status</dt>
                   <dd class="flex items-center text-sm text-gray-500 font-medium capitalize sm:mr-6">
                     <CheckCircleIcon class="flex-shrink-0 mr-1.5 h-5 w-5 text-green-400" />
-                    Welcome back, {{ authStore.user?.username }}
+                    Welcome back, {{ authStore.user?.username || 'Guest' }}
                   </dd>
                   <dt class="sr-only">Last login</dt>
                   <dd class="mt-3 flex items-center text-sm text-gray-500 font-medium sm:mr-6 sm:mt-0">
                     <CalendarIcon class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" />
-                    Last login: {{ formatDate(authStore.user?.last_login) }}
+                    Last login: {{ authStore.user?.last_login ? formatDate(authStore.user.last_login) : 'Never' }}
                   </dd>
                 </dl>
               </div>

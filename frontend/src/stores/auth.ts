@@ -206,8 +206,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 })
 
-// Auto-refresh token before expiration
-const setupTokenRefresh = () => {
+// Auto-refresh token before expiration - call this after Pinia is initialized
+export const setupTokenRefresh = () => {
   const authStore = useAuthStore()
   
   setInterval(async () => {
@@ -230,9 +230,4 @@ const setupTokenRefresh = () => {
       }
     }
   }, 60000) // Check every minute
-}
-
-// Initialize token refresh on store creation
-if (typeof window !== 'undefined') {
-  setupTokenRefresh()
 }
