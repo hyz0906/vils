@@ -349,6 +349,7 @@ import {
 
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { api } from '@/utils/api'
 import type { Project } from '@/types'
 
 const router = useRouter()
@@ -467,65 +468,22 @@ const getProjectTaskCount = (projectId: string) => {
 const loadProjects = async () => {
   isLoading.value = true
   try {
-    // Mock data - in production this would be an API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    const data = await api.projects.list()
+    projects.value = Array.isArray(data) ? data : []
     
-    projects.value = [
-      {
-        id: '1',
-        name: 'Frontend Localization',
-        description: 'Identify problematic commits in the frontend application',
-        is_active: true,
-        repository_url: 'https://github.com/company/frontend',
-        build_command: 'npm run build',
-        test_command: 'npm test',
-        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        updated_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        owner: {
-          id: authStore.user?.id || '1',
-          username: authStore.user?.username || 'john_doe',
-          email: authStore.user?.email || 'john@example.com',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_active: true
-        },
-        tags: [
-          { id: '1', name: 'frontend', color: '#3B82F6', created_at: new Date().toISOString() },
-          { id: '2', name: 'react', color: '#10B981', created_at: new Date().toISOString() }
-        ]
-      },
-      {
-        id: '2',
-        name: 'Backend API Issues',
-        description: 'Track down performance regressions in the API',
-        is_active: true,
-        repository_url: 'https://github.com/company/backend',
-        build_command: 'python -m pytest',
-        test_command: 'python -m pytest tests/',
-        created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-        updated_at: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-        owner: {
-          id: '2',
-          username: 'jane_smith',
-          email: 'jane@example.com',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_active: true
-        },
-        tags: [
-          { id: '3', name: 'backend', color: '#F59E0B', created_at: new Date().toISOString() },
-          { id: '4', name: 'python', color: '#8B5CF6', created_at: new Date().toISOString() }
-        ]
+    // Load task counts for each project
+    for (const project of projects.value) {
+      try {
+        const tasks = await api.tasks.list({ project_id: project.id })
+        taskCounts.value[project.id] = Array.isArray(tasks) ? tasks.length : 0
+      } catch (error) {
+        console.warn(`Failed to load task count for project ${project.id}:`, error)
+        taskCounts.value[project.id] = 0
       }
-    ]
-    
-    // Mock task counts
-    taskCounts.value = {
-      '1': 5,
-      '2': 3
     }
     
   } catch (error) {
+    console.error('Failed to load projects:', error)
     notificationStore.error('Failed to load projects', 'Please try again later')
   } finally {
     isLoading.value = false

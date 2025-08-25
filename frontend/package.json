@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore",
     "format": "prettier --write src/",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "test:standalone": "node test-standalone.mjs",
+    "demo": "VITE_USE_MOCK_API=true vite"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.16",

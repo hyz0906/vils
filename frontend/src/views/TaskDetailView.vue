@@ -355,6 +355,7 @@ import BinarySearchVisualization from '@/components/task/BinarySearchVisualizati
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
 import { useWebSocketStore } from '@/stores/websocket'
+import { api } from '@/utils/api'
 import type { LocalizationTask, TaskIteration } from '@/types'
 
 const route = useRoute()
@@ -431,78 +432,12 @@ const loadTask = async () => {
   error.value = null
   
   try {
-    // Mock data - in production this would be an API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Load task details
+    task.value = await api.tasks.get(taskId.value)
     
-    task.value = {
-      id: taskId.value,
-      project: {
-        id: '1',
-        name: 'Frontend Application',
-        description: 'Main frontend application',
-        is_active: true,
-        repository_url: 'https://github.com/company/frontend',
-        build_command: 'npm run build',
-        test_command: 'npm test',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        owner: {
-          id: '1',
-          username: 'john_doe',
-          email: 'john@example.com',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_active: true
-        }
-      },
-      user: {
-        id: authStore.user?.id || '1',
-        username: authStore.user?.username || 'john_doe',
-        email: authStore.user?.email || 'john@example.com',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_active: true
-      },
-      status: 'active',
-      description: 'Investigating build failures in the CI pipeline',
-      good_commit: 'abc123def456',
-      bad_commit: 'def456ghi789',
-      current_iteration: 3,
-      current_candidates: [
-        'abc123def456',
-        'bcd234eff567',
-        'cde345fgh678',
-        'def456ghi789',
-        'efg567hij890'
-      ],
-      total_iterations: null,
-      problematic_commit: null,
-      error_message: null,
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      updated_at: new Date(Date.now() - 1800000).toISOString(),
-    }
-    
-    // Mock task history
-    taskHistory.value = [
-      {
-        id: '1',
-        task_id: taskId.value,
-        iteration_number: 1,
-        tested_commit: 'xyz789abc123',
-        result: 'bad',
-        candidates_remaining: 8,
-        created_at: new Date(Date.now() - 3600000).toISOString()
-      },
-      {
-        id: '2',
-        task_id: taskId.value,
-        iteration_number: 2,
-        tested_commit: 'uvw678xyz789',
-        result: 'good',
-        candidates_remaining: 5,
-        created_at: new Date(Date.now() - 2700000).toISOString()
-      }
-    ]
+    // Load task iterations
+    const iterations = await api.tasks.getIterations(taskId.value)
+    taskHistory.value = Array.isArray(iterations) ? iterations : []
     
     // Subscribe to task updates via WebSocket
     if (webSocketStore.isConnected) {
@@ -510,6 +445,7 @@ const loadTask = async () => {
     }
     
   } catch (err: any) {
+    console.error('Failed to load task:', err)
     error.value = err.message || 'Failed to load task'
   } finally {
     isLoading.value = false
@@ -528,56 +464,32 @@ const refreshTask = async () => {
 
 const handleCandidateMarked = async (data: { candidate: string; result: 'good' | 'bad' | 'skip' }) => {
   try {
-    // Mock API call to mark candidate
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Call API to mark candidate
+    const updatedTask = await api.tasks.markCandidate(taskId.value, data)
     
-    // Simulate build output
-    buildOutput.value.push(`Testing commit ${data.candidate}...`)
+    // Update local task state
+    task.value = updatedTask
+    
+    // Simulate build output for visual feedback
+    buildOutput.value.push(`Testing commit ${data.candidate.substring(0, 8)}...`)
     buildOutput.value.push(`Running build command: ${task.value?.project.build_command}`)
     buildOutput.value.push(`Running test command: ${task.value?.project.test_command}`)
     buildOutput.value.push(`Result: ${data.result.toUpperCase()}`)
     
-    // Update task with new iteration
-    if (task.value) {
-      task.value.current_iteration = (task.value.current_iteration || 0) + 1
-      
-      // Simulate narrowing down candidates
-      const currentCandidates = task.value.current_candidates || []
-      const candidateIndex = currentCandidates.indexOf(data.candidate)
-      
-      if (data.result === 'good') {
-        // Remove candidates before this one (they're now known good)
-        task.value.current_candidates = currentCandidates.slice(candidateIndex + 1)
-      } else if (data.result === 'bad') {
-        // Remove candidates after this one (they're now known bad)
-        task.value.current_candidates = currentCandidates.slice(0, candidateIndex)
-      }
-      
-      // Check if we found the problematic commit
-      if (task.value.current_candidates.length <= 1) {
-        task.value.status = 'completed'
-        task.value.problematic_commit = task.value.current_candidates[0] || data.candidate
-        task.value.total_iterations = task.value.current_iteration
-        
-        notificationStore.success(
-          'Localization Complete!',
-          `Found problematic commit in ${task.value.current_iteration} iterations`
-        )
-      }
+    // Reload task history to get the latest iteration
+    const iterations = await api.tasks.getIterations(taskId.value)
+    taskHistory.value = Array.isArray(iterations) ? iterations : []
+    
+    // Check if task was completed
+    if (updatedTask.status === 'completed') {
+      notificationStore.success(
+        'Localization Complete!',
+        `Found problematic commit in ${updatedTask.total_iterations} iterations`
+      )
     }
     
-    // Add to history
-    taskHistory.value.unshift({
-      id: `${taskHistory.value.length + 1}`,
-      task_id: taskId.value,
-      iteration_number: task.value?.current_iteration || 1,
-      tested_commit: data.candidate,
-      result: data.result,
-      candidates_remaining: task.value?.current_candidates?.length || 0,
-      created_at: new Date().toISOString()
-    })
-    
   } catch (error) {
+    console.error('Failed to mark candidate:', error)
     notificationStore.error('Failed to process result', 'Please try again')
   }
 }

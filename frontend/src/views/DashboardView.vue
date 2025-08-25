@@ -348,6 +348,7 @@ import {
 
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { api } from '@/utils/api'
 import type { Project, LocalizationTask, User } from '@/types'
 
 const authStore = useAuthStore()
@@ -451,23 +452,23 @@ const getActivityIcon = (type: string) => {
 }
 
 const loadDashboardData = async () => {
-  // Mock data for now - in production, these would be API calls
-  stats.value = {
-    totalProjects: 12,
-    activeTasks: 3,
-    completedTasks: 47,
-    completedThisWeek: 8,
-    avgResolutionTime: '2.5 hrs'
+  try {
+    // Load dashboard statistics
+    stats.value = await api.dashboard.getStats()
+
+    // Load recent tasks
+    const tasks = await api.tasks.list({ limit: 5 })
+    recentTasks.value = Array.isArray(tasks) ? tasks : []
+
+    // Load recent projects
+    const projects = await api.projects.list({ limit: 5 })
+    recentProjects.value = Array.isArray(projects) ? projects : []
+
+    // Load recent activity
+    recentActivity.value = await api.dashboard.getActivity()
+  } catch (error) {
+    console.error('Failed to load dashboard data:', error)
   }
-
-  // Mock recent tasks
-  recentTasks.value = []
-
-  // Mock recent projects  
-  recentProjects.value = []
-
-  // Mock recent activity
-  recentActivity.value = []
 }
 
 const refreshData = async () => {

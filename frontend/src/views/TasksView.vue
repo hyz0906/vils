@@ -320,6 +320,7 @@ import {
 
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationStore } from '@/stores/notification'
+import { api } from '@/utils/api'
 import type { LocalizationTask } from '@/types'
 
 const authStore = useAuthStore()
@@ -440,95 +441,10 @@ const getProgress = (task: LocalizationTask) => {
 const loadTasks = async () => {
   isLoading.value = true
   try {
-    // Mock data - in production this would be an API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    tasks.value = [
-      {
-        id: '1',
-        project: {
-          id: '1',
-          name: 'Frontend Application',
-          description: 'Main frontend application',
-          is_active: true,
-          repository_url: 'https://github.com/company/frontend',
-          build_command: 'npm run build',
-          test_command: 'npm test',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          owner: {
-            id: '1',
-            username: 'john_doe',
-            email: 'john@example.com',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_active: true
-          }
-        },
-        user: {
-          id: authStore.user?.id || '1',
-          username: authStore.user?.username || 'john_doe',
-          email: authStore.user?.email || 'john@example.com',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_active: true
-        },
-        status: 'active',
-        description: 'Investigating build failures in the CI pipeline',
-        good_commit: 'abc123',
-        bad_commit: 'def456',
-        current_iteration: 3,
-        current_candidates: ['commit1', 'commit2', 'commit3', 'commit4', 'commit5'],
-        total_iterations: null,
-        problematic_commit: null,
-        error_message: null,
-        created_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        updated_at: new Date(Date.now() - 1800000).toISOString(), // 30 minutes ago
-      },
-      {
-        id: '2',
-        project: {
-          id: '2',
-          name: 'Backend API',
-          description: 'Core API service',
-          is_active: true,
-          repository_url: 'https://github.com/company/backend',
-          build_command: 'python -m pytest',
-          test_command: 'python -m pytest tests/',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          owner: {
-            id: '2',
-            username: 'jane_smith',
-            email: 'jane@example.com',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            is_active: true
-          }
-        },
-        user: {
-          id: '2',
-          username: 'jane_smith',
-          email: 'jane@example.com',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          is_active: true
-        },
-        status: 'completed',
-        description: 'Performance regression in database queries',
-        good_commit: 'ghi789',
-        bad_commit: 'jkl012',
-        current_iteration: null,
-        current_candidates: null,
-        total_iterations: 5,
-        problematic_commit: 'mno345',
-        error_message: null,
-        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-        updated_at: new Date(Date.now() - 43200000).toISOString(), // 12 hours ago
-      }
-    ]
-    
+    const data = await api.tasks.list()
+    tasks.value = Array.isArray(data) ? data : []
   } catch (error) {
+    console.error('Failed to load tasks:', error)
     notificationStore.error('Failed to load tasks', 'Please try again later')
   } finally {
     isLoading.value = false
